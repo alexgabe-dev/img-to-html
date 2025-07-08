@@ -644,6 +644,7 @@
         resultItem.className = `result-item ${success ? 'success' : 'error'}`;
         if (success && data) {
             const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-');
+            // A generált kód csak az <img ...> tag!
             const imgCode = `<img src=\"${data.url}\" alt=\"${cleanFileName}\">`;
             resultItem.innerHTML = `
                 <div class="result-header">
@@ -656,7 +657,7 @@
                         <strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a>
                     </div>
                     <div class="code-card">
-                        <button class="copy-btn" onclick="copyToClipboard(this, \`${imgCode.replace(/`/g, '\\`')}\`)" title="Másolás">
+                        <button class="copy-btn" onclick="copyToClipboard(this, \`${imgCode}\`)" title="Másolás">
                             <i class="ph ph-copy"></i>
                         </button>
                         <pre class="code-output language-markup"><code class="language-markup">${Prism.highlight(imgCode, Prism.languages.markup, 'markup')}</code></pre>
