@@ -29,10 +29,17 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    console.log('Kapott files:', files);
+
     const file = files.image;
     if (!file) {
       console.log('Nincs file!');
       res.status(400).json({ error: 'Nem érkezett kép.' });
+      return;
+    }
+    if (!file.filepath) {
+      console.log('A file objektum nem tartalmaz filepath-et:', file);
+      res.status(400).json({ error: 'A feltöltött file hibás, nincs filepath.' });
       return;
     }
 
@@ -40,7 +47,6 @@ module.exports = async function handler(req, res) {
       const fileData = fs.readFileSync(file.filepath, { encoding: 'base64' });
       console.log('Fájl beolvasva, méret:', fileData.length);
 
-      // Dinamikus import node-fetch-hez
       const fetch = (...args) => import('node-fetch').then(mod => mod.default(...args));
 
       const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
@@ -48,7 +54,7 @@ module.exports = async function handler(req, res) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           image: fileData,
-          name: file.originalFilename.replace(/\.[^/.]+$/, ""),
+          name: file.originalFilename ? file.originalFilename.replace(/\.[^/.]+$/, "") : "image",
         }),
       });
 
