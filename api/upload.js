@@ -1,3 +1,13 @@
+import formidable from 'formidable';
+import fs from 'fs';
+import fetch from 'node-fetch';
+
+export const config = {
+  api: {
+    bodyParser: false, // Fontos! A Next.js ne dolgozza fel automatikusan a body-t
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Csak POST metódus engedélyezett' });
@@ -10,29 +20,38 @@ export default async function handler(req, res) {
     return;
   }
 
-  // A Vercel serverless function-ökben a body alapból JSON, de nekünk form-data kell
-  // Ezért a raw request body-t kell olvasni, és továbbítani
-  // A legegyszerűbb, ha a frontend is form-data-t küld, és azt továbbítjuk
+  const form = new formidable.IncomingForm();
 
-  // A Next.js/Vercel API route-okban a req.body már feldolgozott, de a fájlokhoz raw body kell
-  // Ezért a request streamet kell továbbítani
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      res.status(500).json({ error: 'Form feldolgozási hiba: ' + err.message });
+      return;
+    }
 
-  const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+    const file = files.image;
+    if (!file) {
+      res.status(400).json({ error: 'Nem érkezett kép.' });
+      return;
+    }
 
-  try {
-    const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        ...req.headers,
-        host: undefined, // host fejlécet ne továbbítsuk
-        'content-length': undefined // content-length-et se
-      },
-      body: req,
-    });
+    // Olvasd be a fájlt base64-be
+    const fileData = fs.readFileSync(file.filepath, { encoding: 'base64' });
 
-    const data = await imgbbRes.json();
-    res.status(imgbbRes.status).json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Hiba a proxy során: ' + error.message });
-  }
-} 
+    // Küldd el az imgbb API-nak
+    try {
+      const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          image: fileData,
+          name: file.originalFilename.replace(/\.[^/.]+$/, ""),
+        }),
+      });
+
+      const data = await imgbbRes.json();
+      res.status(imgbbRes.status).json(data);
+    } catch (error) {
+      res.status(500).json({ error: 'Hiba a proxy során: ' + error.message });
+    }
+  });
+}
