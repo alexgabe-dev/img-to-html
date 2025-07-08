@@ -644,7 +644,7 @@
         resultItem.className = `result-item ${success ? 'success' : 'error'}`;
         if (success && data) {
             const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-');
-            const imgCode = `<img src="${data.url}" alt="${cleanFileName}">`;
+            const imgCode = `<img src=\"${data.url}\" alt=\"${cleanFileName}\">`;
             resultItem.innerHTML = `
                 <div class="result-header">
                     <i class="ph ph-check-circle" style="color:var(--color-success);"></i>
@@ -656,10 +656,12 @@
                         <strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a>
                     </div>
                     <div class="code-card">
-                        <button class="copy-btn" data-code="${encodeURIComponent(imgCode)}" title="Másolás" onclick="copyCodeFromButton(this)">
-                            <i class="ph ph-copy"></i>
-                        </button>
-                        <pre class="code-output language-markup"><code class="language-markup">${Prism.highlight(imgCode, Prism.languages.markup, 'markup')}</code></pre>
+                        <div style="position: relative;">
+                            <button class="copy-btn" data-code="${encodeURIComponent(imgCode)}" title="Másolás" onclick="copyCodeFromButton(this)" style="position:absolute;top:10px;right:10px;z-index:2;">
+                                <i class="ph ph-copy"></i>
+                            </button>
+                            <pre class="code-output language-markup" style="margin-top:0.5em;"><code class="language-markup">${Prism.highlight(imgCode, Prism.languages.markup, 'markup')}</code></pre>
+                        </div>
                     </div>
                 </div>
             `;
