@@ -1,6 +1,5 @@
 const formidable = require('formidable');
 const fs = require('fs');
-const fetch = require('node-fetch');
 
 exports.config = {
   api: {
@@ -40,6 +39,9 @@ module.exports = async function handler(req, res) {
     try {
       const fileData = fs.readFileSync(file.filepath, { encoding: 'base64' });
       console.log('Fájl beolvasva, méret:', fileData.length);
+
+      // Dinamikus import node-fetch-hez
+      const fetch = (...args) => import('node-fetch').then(mod => mod.default(...args));
 
       const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
         method: 'POST',
