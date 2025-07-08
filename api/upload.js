@@ -1,14 +1,14 @@
-import formidable from 'formidable';
-import fs from 'fs';
-import fetch from 'node-fetch';
+const formidable = require('formidable');
+const fs = require('fs');
+const fetch = require('node-fetch');
 
-export const config = {
+exports.config = {
   api: {
-    bodyParser: false, // Fontos! A Next.js ne dolgozza fel automatikusan a body-t
+    bodyParser: false,
   },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Csak POST metódus engedélyezett' });
     return;
@@ -16,6 +16,7 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.IMGBB_API_KEY;
   if (!apiKey) {
+    console.log('Nincs API kulcs!');
     res.status(500).json({ error: 'IMGBB_API_KEY nincs beállítva a környezeti változókban.' });
     return;
   }
@@ -24,21 +25,22 @@ export default async function handler(req, res) {
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
+      console.log('Form error:', err);
       res.status(500).json({ error: 'Form feldolgozási hiba: ' + err.message });
       return;
     }
 
     const file = files.image;
     if (!file) {
+      console.log('Nincs file!');
       res.status(400).json({ error: 'Nem érkezett kép.' });
       return;
     }
 
-    // Olvasd be a fájlt base64-be
-    const fileData = fs.readFileSync(file.filepath, { encoding: 'base64' });
-
-    // Küldd el az imgbb API-nak
     try {
+      const fileData = fs.readFileSync(file.filepath, { encoding: 'base64' });
+      console.log('Fájl beolvasva, méret:', fileData.length);
+
       const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -49,9 +51,12 @@ export default async function handler(req, res) {
       });
 
       const data = await imgbbRes.json();
+      console.log('imgbb válasz:', data);
+
       res.status(imgbbRes.status).json(data);
     } catch (error) {
+      console.log('Proxy hiba:', error);
       res.status(500).json({ error: 'Hiba a proxy során: ' + error.message });
     }
   });
-}
+};
