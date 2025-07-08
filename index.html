@@ -405,6 +405,9 @@
                 padding: 8px 0;
             }
         }
+        #clearAllBtn {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -430,7 +433,7 @@
                     <i class="ph ph-arrow-up"></i>
                     Feltöltés
                 </button>
-                <button class="btn btn-secondary" onclick="clearAll()">
+                <button class="btn btn-secondary" id="clearAllBtn" onclick="clearAll()">
                     <i class="ph ph-trash"></i>
                     Összes törlése
                 </button>
@@ -538,6 +541,11 @@
         });
 
         uploadButton.disabled = selectedFiles.length === 0 || isUploading;
+        // Összes törlése gomb megjelenítése/elrejtése
+        const clearBtn = document.getElementById('clearAllBtn');
+        if (clearBtn) {
+            clearBtn.style.display = selectedFiles.length > 0 ? '' : 'none';
+        }
     }
 
     function formatFileSize(bytes) {
@@ -838,6 +846,9 @@
         };
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
+
+    // Oldal betöltésekor rögtön frissítjük a file listát és a gombot
+    updateFileList();
 </script>
 </body>
 </html>
