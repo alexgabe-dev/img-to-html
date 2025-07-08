@@ -86,22 +86,34 @@
         .file-input { display: none; }
         .file-list {
             margin: 18px 0 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
         .file-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             background: var(--color-surface);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px 0 rgba(16,30,54,0.06);
             border: 1px solid var(--color-border);
-            border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 8px;
+            padding: 12px 18px;
+            gap: 14px;
+            transition: box-shadow 0.18s;
+        }
+        .file-item:hover {
+            box-shadow: 0 4px 16px 0 rgba(16,30,54,0.10);
+        }
+        .file-icon {
+            font-size: 1.5rem;
+            color: var(--color-primary);
+            flex-shrink: 0;
         }
         .file-info {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
             min-width: 0;
+            flex: 1;
         }
         .file-name {
             font-weight: 500;
@@ -109,10 +121,31 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            color: var(--color-text);
         }
         .file-size {
             font-size: 0.95rem;
             color: var(--color-muted);
+        }
+        .file-remove-btn {
+            background: #f3f4f6;
+            color: var(--color-danger);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 1.15rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            transition: background 0.2s, color 0.2s;
+        }
+        .file-remove-btn i {
+            font-size: 1.25em;
+        }
+        .file-remove-btn:hover {
+            background: var(--color-danger);
+            color: #fff;
         }
         .btn {
             display: inline-flex;
@@ -248,37 +281,37 @@
         .code-container {
             position: relative;
         }
-        pre.code-output {
-            background: #23272e;
-            color: #fff;
-            padding: 12px;
-            border-radius: 6px;
-            font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
-            font-size: 1rem;
-            margin: 0;
-            white-space: pre-wrap;
-            border: 1px solid #23272e;
-            overflow-x: auto;
+        .code-card {
+            background: var(--color-surface);
+            border-radius: 8px;
+            box-shadow: 0 1px 4px 0 rgba(16,30,54,0.06);
+            border: 1px solid var(--color-border);
+            margin-top: 8px;
+            margin-bottom: 0;
+            padding: 0;
+            position: relative;
+        }
+        .code-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 6px 12px 0 12px;
         }
         .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--color-surface);
+            position: static;
+            margin: 0 0 6px 0;
+            background: #f3f4f6;
             color: var(--color-primary);
             border: 1px solid var(--color-border);
-            padding: 4px 10px;
-            border-radius: 4px;
+            padding: 4px 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 0.97rem;
             transition: background 0.2s, color 0.2s;
             display: flex;
             align-items: center;
             gap: 4px;
-        }
-        .copy-btn i {
-            font-size: 1.1em;
-            margin-right: 4px;
+            box-shadow: none;
         }
         .copy-btn:hover {
             background: var(--color-primary);
@@ -288,6 +321,36 @@
             background: var(--color-success);
             color: #fff;
             border-color: var(--color-success);
+        }
+        pre.code-output {
+            background: #23272e;
+            color: #fff;
+            padding: 14px 16px 14px 16px;
+            border-radius: 0 0 8px 8px;
+            font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+            font-size: 1rem;
+            margin: 0;
+            white-space: pre-wrap;
+            border: none;
+            overflow-x: auto;
+            box-shadow: none;
+        }
+        .code-output::-webkit-scrollbar {
+            height: 6px;
+            background: #23272e;
+        }
+        .code-output::-webkit-scrollbar-thumb {
+            background: #444857;
+            border-radius: 4px;
+        }
+        @media (max-width: 600px) {
+            .code-header {
+                padding: 6px 6px 0 6px;
+            }
+            pre.code-output {
+                font-size: 0.95rem;
+                padding: 10px 6px 10px 6px;
+            }
         }
         .status-message {
             padding: 12px 16px;
@@ -332,6 +395,19 @@
                 justify-content: center;
                 font-size: 1.05rem;
                 padding: 12px 0;
+            }
+        }
+        @media (max-width: 600px) {
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 12px 10px;
+                gap: 8px;
+            }
+            .file-remove-btn {
+                width: 44px;
+                justify-content: center;
+                padding: 8px 0;
             }
         }
     </style>
@@ -454,12 +530,13 @@
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
             fileItem.innerHTML = `
+                <i class="ph ph-image file-icon"></i>
                 <div class="file-info">
-                    <span class="file-name">📷 ${file.name}</span>
+                    <span class="file-name">${file.name}</span>
                     <span class="file-size">(${formatFileSize(file.size)})</span>
                 </div>
-                <button class="btn btn-destructive btn-small" onclick="removeFile(${index})" ${isUploading ? 'disabled' : ''}>
-                    Eltávolítás
+                <button class="file-remove-btn" onclick="removeFile(${index})" ${isUploading ? 'disabled' : ''} title="Eltávolítás">
+                    <i class="ph ph-x"></i>
                 </button>
             `;
             fileList.appendChild(fileItem);
@@ -573,7 +650,7 @@
         resultItem.className = `result-item ${success ? 'success' : 'error'}`;
         if (success && data) {
             const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-');
-            const imgCode = `<img src="${data.url}" alt="${cleanFileName}">`;
+            const imgCode = `<img src=\"${data.url}\" alt=\"${cleanFileName}\">`;
             resultItem.innerHTML = `
                 <div class="result-header">
                     <i class="ph ph-check-circle" style="color:var(--color-success);"></i>
@@ -584,11 +661,13 @@
                     <div class="result-url">
                         <strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a>
                     </div>
-                    <div class="code-container">
-                        <button class="copy-btn" onclick="copyToClipboard(this, \`${imgCode.replace(/`/g, '\\`')}\`)">
-                            <i class="ph ph-copy"></i>
-                            Másolás
-                        </button>
+                    <div class="code-card">
+                        <div class="code-header">
+                            <button class="copy-btn" onclick="copyToClipboard(this, \`${imgCode.replace(/`/g, '\\`')}\`)">
+                                <i class="ph ph-copy"></i>
+                                <span class="copy-text">Másolás</span>
+                            </button>
+                        </div>
                         <pre class="code-output language-markup"><code class="language-markup">${Prism.highlight(imgCode, Prism.languages.markup, 'markup')}</code></pre>
                     </div>
                 </div>
@@ -705,19 +784,18 @@
     async function copyToClipboard(button, text) {
         try {
             await navigator.clipboard.writeText(text);
-            const originalText = button.textContent;
-            button.textContent = 'Másolva!';
+            const originalText = button.querySelector('.copy-text').textContent;
+            button.querySelector('.copy-text').textContent = 'Másolva!';
             button.classList.add('copied');
-            
             setTimeout(() => {
-                button.textContent = originalText;
+                button.querySelector('.copy-text').textContent = originalText;
                 button.classList.remove('copied');
-            }, 2000);
+            }, 1800);
         } catch (err) {
             console.error('Másolás sikertelen:', err);
-            button.textContent = 'Hiba!';
+            button.querySelector('.copy-text').textContent = 'Hiba!';
             setTimeout(() => {
-                button.textContent = 'Másolás';
+                button.querySelector('.copy-text').textContent = 'Másolás';
             }, 2000);
         }
     }
