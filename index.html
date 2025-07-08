@@ -644,10 +644,7 @@
         resultItem.className = `result-item ${success ? 'success' : 'error'}`;
         if (success && data) {
             const cleanFileName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-');
-            // Tényleg csak az <img ...> tag!
             const imgCode = `<img src="${data.url}" alt="${cleanFileName}">`;
-            // Escape-eljük az aposztrófokat a másolás gombban
-            const imgCodeForCopy = imgCode.replace(/'/g, "&#39;");
             resultItem.innerHTML = `
                 <div class="result-header">
                     <i class="ph ph-check-circle" style="color:var(--color-success);"></i>
@@ -659,7 +656,7 @@
                         <strong>URL:</strong> <a href="${data.url}" target="_blank">${data.url}</a>
                     </div>
                     <div class="code-card">
-                        <button class="copy-btn" onclick="copyToClipboard(this, '${imgCodeForCopy}')" title="Másolás">
+                        <button class="copy-btn" data-code="${encodeURIComponent(imgCode)}" title="Másolás" onclick="copyCodeFromButton(this)">
                             <i class="ph ph-copy"></i>
                         </button>
                         <pre class="code-output language-markup"><code class="language-markup">${Prism.highlight(imgCode, Prism.languages.markup, 'markup')}</code></pre>
@@ -676,6 +673,20 @@
             `;
         }
         resultsSection.appendChild(resultItem);
+    }
+
+    function copyCodeFromButton(button) {
+        const code = decodeURIComponent(button.getAttribute('data-code'));
+        navigator.clipboard.writeText(code).then(() => {
+            const icon = button.querySelector('i');
+            const originalClass = icon.className;
+            icon.className = 'ph ph-check';
+            button.classList.add('copied');
+            setTimeout(() => {
+                icon.className = originalClass;
+                button.classList.remove('copied');
+            }, 1800);
+        });
     }
 
     function saveToHistory(file, data) {
