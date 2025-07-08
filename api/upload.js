@@ -31,7 +31,8 @@ module.exports = async function handler(req, res) {
 
     console.log('Kapott files:', files);
 
-    const file = files.image;
+    const fileArray = files.image;
+    const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
     if (!file) {
       console.log('Nincs file!');
       res.status(400).json({ error: 'Nem érkezett kép.' });
