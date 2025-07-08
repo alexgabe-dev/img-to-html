@@ -408,6 +408,116 @@
         #clearAllBtn {
             display: none;
         }
+        /* --- Info gomb és modal --- */
+        .info-btn {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 1001;
+            background: #fff;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px 0 rgba(16,30,54,0.10);
+            padding: 7px 16px 7px 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+        }
+        .info-btn:hover {
+            background: var(--color-primary);
+            color: #fff;
+        }
+        .info-btn .verz {
+            font-size: 0.92em;
+            color: var(--color-muted);
+            margin-left: 4px;
+        }
+        .info-modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,0.35);
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+        .info-modal-bg.active {
+            display: flex;
+            opacity: 1;
+        }
+        .info-modal-content {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px 0 rgba(16,30,54,0.18);
+            padding: 28px 24px 20px 24px;
+            min-width: 280px;
+            max-width: 90vw;
+            position: relative;
+            transition: transform 0.3s, opacity 0.3s;
+            transform: scale(0.97);
+            opacity: 0;
+        }
+        .info-modal-bg.active .info-modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .info-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: var(--color-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .info-modal-close:hover {
+            color: var(--color-danger);
+        }
+        .info-modal-content h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .info-modal-content p {
+            font-size: 1rem;
+            margin-bottom: 18px;
+            color: var(--color-text);
+        }
+        .info-gh-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            transition: color 0.2s;
+        }
+        .info-gh-link:hover {
+            color: var(--color-primary-hover);
+        }
+        .info-gh-link i {
+            font-size: 1.2em;
+        }
+        .info-verz {
+            margin-top: 10px;
+            font-size: 0.95em;
+            color: var(--color-muted);
+            text-align: right;
+        }
+        @media (max-width: 600px) {
+            .info-btn { top: 8px; right: 8px; font-size: 0.97rem; padding: 6px 10px; }
+            .info-modal-content { padding: 18px 8px 14px 8px; }
+        }
     </style>
 </head>
 <body>
@@ -446,6 +556,26 @@
             </div>
         </div>
         <div class="results-section" id="resultsSection"></div>
+    </div>
+    <!-- Sarokban lebegő info gomb -->
+    <button id="infoBtn" class="info-btn">
+        <i class="ph ph-info"></i> Delego képfeltöltő <span class="verz">v1.0.0</span>
+    </button>
+    <!-- Információs Modal -->
+    <div id="infoModal" class="info-modal-bg">
+        <div class="info-modal-content">
+            <button id="closeModal" class="info-modal-close" title="Bezárás">&times;</button>
+            <h2>A programról</h2>
+            <p>
+                Ez a képfeltöltő alkalmazás lehetővé teszi képek gyors feltöltését az ImgBB-re, letisztult, modern felületen.<br>
+                <b>Készítette:</b> Gábor Sándor
+            </p>
+            <a href="https://github.com/alexgabe-dev" class="info-gh-link" target="_blank" rel="noopener">
+                <i class="ph ph-github-logo"></i>
+                GitHub oldalam
+            </a>
+            <div class="info-verz">Verzió: v1.0.0</div>
+        </div>
     </div>
     <!-- Prism.js -->
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
@@ -849,6 +979,22 @@
 
     // Oldal betöltésekor rögtön frissítjük a file listát és a gombot
     updateFileList();
+
+    // Info modal logika
+    const infoBtn = document.getElementById('infoBtn');
+    const infoModal = document.getElementById('infoModal');
+    const closeModal = document.getElementById('closeModal');
+    if (infoBtn && infoModal && closeModal) {
+        infoBtn.addEventListener('click', () => {
+            infoModal.classList.add('active');
+        });
+        closeModal.addEventListener('click', () => {
+            infoModal.classList.remove('active');
+        });
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) infoModal.classList.remove('active');
+        });
+    }
 </script>
 </body>
 </html>
