@@ -518,6 +518,106 @@
             .info-btn { top: 8px; right: 8px; font-size: 0.97rem; padding: 6px 10px; }
             .info-modal-content { padding: 18px 8px 14px 8px; }
         }
+        /* Sarok név-verzió */
+        .corner-info {
+            position: fixed;
+            top: 18px;
+            right: 24px;
+            z-index: 1001;
+            color: var(--color-muted);
+            font-size: 1rem;
+            font-weight: 500;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        .corner-info:hover {
+            color: var(--color-primary);
+            background: none;
+            font-weight: 500;
+            box-shadow: none;
+        }
+        /* Modal */
+        .simple-modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,0.35);
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+        .simple-modal-bg.active {
+            display: flex;
+            opacity: 1;
+        }
+        .simple-modal-content {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px 0 rgba(16,30,54,0.18);
+            padding: 28px 24px 20px 24px;
+            min-width: 260px;
+            max-width: 90vw;
+            position: relative;
+            transition: transform 0.3s, opacity 0.3s;
+            transform: scale(0.97);
+            opacity: 0;
+            text-align: left;
+        }
+        .simple-modal-bg.active .simple-modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .simple-modal-close {
+            position: absolute;
+            top: 10px;
+            left: 14px;
+            background: none;
+            border: none;
+            font-size: 1.7rem;
+            color: var(--color-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        .simple-modal-close:hover {
+            color: var(--color-danger);
+        }
+        .simple-modal-content h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            margin-top: 0;
+        }
+        .simple-modal-content p {
+            font-size: 1rem;
+            margin-bottom: 18px;
+            color: var(--color-text);
+        }
+        .simple-gh-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            transition: color 0.2s;
+        }
+        .simple-gh-link:hover {
+            color: var(--color-primary-hover);
+        }
+        .simple-gh-link i {
+            font-size: 1.2em;
+        }
+        @media (max-width: 600px) {
+            .corner-info { top: 8px; right: 8px; font-size: 0.97rem; }
+            .simple-modal-content { padding: 16px 6px 12px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -557,24 +657,22 @@
         </div>
         <div class="results-section" id="resultsSection"></div>
     </div>
-    <!-- Sarokban lebegő info gomb -->
-    <button id="infoBtn" class="info-btn">
-        <i class="ph ph-info"></i> Delego képfeltöltő <span class="verz">v1.0.0</span>
-    </button>
-    <!-- Információs Modal -->
-    <div id="infoModal" class="info-modal-bg">
-        <div class="info-modal-content">
-            <button id="closeModal" class="info-modal-close" title="Bezárás">&times;</button>
+    <!-- Sarokban név és verzió -->
+    <div class="corner-info" id="cornerInfo">Gábor Sándor - v0.2.1</div>
+    <!-- Letisztult modal -->
+    <div id="simpleModal" class="simple-modal-bg">
+        <div class="simple-modal-content">
+            <button id="simpleClose" class="simple-modal-close" title="Bezárás">&times;</button>
             <h2>A programról</h2>
             <p>
                 Ez a képfeltöltő alkalmazás lehetővé teszi képek gyors feltöltését az ImgBB-re, letisztult, modern felületen.<br>
                 <b>Készítette:</b> Gábor Sándor
             </p>
-            <a href="https://github.com/alexgabe-dev" class="info-gh-link" target="_blank" rel="noopener">
+            <a href="https://github.com/alexgabe-dev" class="simple-gh-link" target="_blank" rel="noopener">
                 <i class="ph ph-github-logo"></i>
                 GitHub oldalam
             </a>
-            <div class="info-verz">Verzió: v1.0.0</div>
+            <div style="margin-top:10px;font-size:0.95em;color:var(--color-muted);text-align:right;">Verzió: v0.2.1</div>
         </div>
     </div>
     <!-- Prism.js -->
@@ -980,21 +1078,23 @@
     // Oldal betöltésekor rögtön frissítjük a file listát és a gombot
     updateFileList();
 
-    // Info modal logika
-    const infoBtn = document.getElementById('infoBtn');
-    const infoModal = document.getElementById('infoModal');
-    const closeModal = document.getElementById('closeModal');
-    if (infoBtn && infoModal && closeModal) {
-        infoBtn.addEventListener('click', () => {
-            infoModal.classList.add('active');
+    // Modal logika visszaállítása
+    document.addEventListener('DOMContentLoaded', function() {
+      const cornerInfo = document.getElementById('cornerInfo');
+      const simpleModal = document.getElementById('simpleModal');
+      const simpleClose = document.getElementById('simpleClose');
+      if (cornerInfo && simpleModal && simpleClose) {
+        cornerInfo.addEventListener('click', () => {
+          simpleModal.classList.add('active');
         });
-        closeModal.addEventListener('click', () => {
-            infoModal.classList.remove('active');
+        simpleClose.addEventListener('click', () => {
+          simpleModal.classList.remove('active');
         });
-        infoModal.addEventListener('click', (e) => {
-            if (e.target === infoModal) infoModal.classList.remove('active');
+        simpleModal.addEventListener('click', (e) => {
+          if (e.target === simpleModal) simpleModal.classList.remove('active');
         });
-    }
+      }
+    });
 </script>
 </body>
 </html>
