@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <!-- Phosphor Icons -->
     <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
-    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="icon" type="image/png" href="./assets/favicon.png">
     <style>
         :root {
             --color-bg: #f7f8fa;
@@ -618,7 +618,77 @@
             .corner-info { top: 8px; right: 8px; font-size: 0.97rem; }
             .simple-modal-content { padding: 16px 6px 12px 6px; }
         }
-    </style>
+    /* Add this to your existing CSS */
+.history-items-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.history-preview-container {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.history-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+}
+
+.history-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-date {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+}
+
+.history-preview-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 2001;
+}
+
+.history-preview-overlay.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.clear-history-btn {
+    margin-top: 20px;
+    width: 100%;
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -678,7 +748,18 @@
     <!-- Prism.js -->
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.0/browser-image-compression.min.js"></script>
     <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(registration => {
+          console.log('ServiceWorker registered: ', registration);
+        }).catch(error => {
+          console.log('ServiceWorker registration failed: ', error);
+        });
+      });
+    }
+
     let selectedFiles = [];
     let isUploading = false;
     let uploadHistory = JSON.parse(localStorage.getItem('imgbb_history') || '[]');
@@ -703,11 +784,13 @@
     fileInput.addEventListener('change', handleFileSelect);
 
     // History modal close on outside click
-    historyModal.addEventListener('click', (e) => {
-        if (e.target === historyModal) {
-            closeHistory();
-        }
-    });
+    if (historyModal) {
+        historyModal.addEventListener('click', (e) => {
+            if (e.target === historyModal) {
+                closeHistory();
+            }
+        });
+    }
 
     function handleDragOver(e) {
         e.preventDefault();
@@ -811,32 +894,47 @@
 
         let successCount = 0;
         let failCount = 0;
+        let completedCount = 0;
+        
+        // Create a function to update progress
+        const updateProgress = () => {
+            const progress = (completedCount / selectedFiles.length) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = `${completedCount} / ${selectedFiles.length} kép feltöltve`;
+        };
 
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
-            
-            try {
-                const result = await uploadSingleFile(file);
-                if (result.success) {
-                    displayResult(file, result.data, true);
-                    saveToHistory(file, result.data);
-                    successCount++;
-                } else {
-                    displayResult(file, null, false, result.error);
+        // Set maximum concurrent uploads
+        const MAX_CONCURRENT = 3;
+        const chunks = [];
+        
+        // Split files into chunks for controlled concurrency
+        for (let i = 0; i < selectedFiles.length; i += MAX_CONCURRENT) {
+            chunks.push(selectedFiles.slice(i, i + MAX_CONCURRENT));
+        }
+        
+        // Process chunks sequentially, but files within chunks in parallel
+        for (const chunk of chunks) {
+            const promises = chunk.map(async (file) => {
+                try {
+                    const result = await uploadSingleFile(file);
+                    if (result.success) {
+                        displayResult(file, result.data, true);
+                        saveToHistory(file, result.data);
+                        successCount++;
+                    } else {
+                        displayResult(file, null, false, result.error);
+                        failCount++;
+                    }
+                } catch (error) {
+                    displayResult(file, null, false, error.message);
                     failCount++;
                 }
-            } catch (error) {
-                displayResult(file, null, false, error.message);
-                failCount++;
-            }
-
-            const progress = ((i + 1) / selectedFiles.length) * 100;
-            progressFill.style.width = progress + '%';
-            progressText.textContent = `${i + 1} / ${selectedFiles.length} kép feltöltve`;
-
-            if (i < selectedFiles.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
+                
+                completedCount++;
+                updateProgress();
+            });
+            
+            await Promise.all(promises);
         }
 
         isUploading = false;
@@ -851,8 +949,26 @@
     }
 
     async function uploadSingleFile(file) {
+        // Compress the image if it's larger than 1MB
+        let fileToUpload = file;
+        if (file.size > 1024 * 1024 && file.type.startsWith('image/')) {
+            try {
+                const options = {
+                    maxSizeMB: 1,
+                    maxWidthOrHeight: 1920,
+                    useWebWorker: true
+                };
+                fileToUpload = await imageCompression(file, options);
+                console.log('Compressed image size:', fileToUpload.size / 1024 / 1024, 'MB');
+            } catch (error) {
+                console.error('Compression error:', error);
+                // Fall back to original file if compression fails
+                fileToUpload = file;
+            }
+        }
+
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('image', fileToUpload);
 
         try {
             const response = await fetch('/api/upload', {
@@ -943,45 +1059,93 @@
         localStorage.setItem('imgbb_history', JSON.stringify(uploadHistory));
     }
 
-    function showHistory() {
-        updateHistoryDisplay();
-        historyModal.classList.add('show');
-    }
+    function loadMoreHistory() {
+    historyPage++;
+    updateHistoryDisplay();
+}
+
+function showHistory() {
+    historyPage = 0; // Reset to first page when opening
+    updateHistoryDisplay();
+    historyModal.classList.add('show');
+}
 
     function closeHistory() {
         historyModal.classList.remove('show');
     }
 
-    function updateHistoryDisplay() {
-        if (uploadHistory.length === 0) {
-            historyBody.innerHTML = `
-                <p style="text-align: center; color: hsl(215.4 16.3% 46.9%); padding: 40px;">
-                    Még nincsenek feltöltött képek
-                </p>
-            `;
-            return;
-        }
+    let historyPage = 0;
+const historyItemsPerPage = 10;
 
+function updateHistoryDisplay() {
+    if (uploadHistory.length === 0) {
         historyBody.innerHTML = `
-            ${uploadHistory.map(item => `
-                <div class="history-item">
-                    <div class="history-preview-container">
-                        <img src="${item.thumbUrl}" alt="Előnézet" class="history-preview" 
-                             onmouseenter="showPreviewOverlay('${item.url}')" 
-                             onmouseleave="hidePreviewOverlay()">
-                    </div>
-                    <div class="history-info">
-                        <div class="history-name">${item.fileName}</div>
-                        <div class="history-date">${new Date(item.uploadDate).toLocaleString('hu-HU')}</div>
-                    </div>
-                    <button class="btn btn-secondary btn-small" onclick="copyHistoryCode('${item.url}', '${item.fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-')}', this)">
-                        Kód másolása
-                    </button>
-                    <button class="btn btn-destructive btn-small" onclick="removeFromHistory(${item.id})">
-                        Törlés
-                    </button>
-                </div>
-            `).join('')}
+            <p style="text-align: center; color: hsl(215.4 16.3% 46.9%); padding: 40px;">
+                Még nincsenek feltöltött képek
+            </p>
+        `;
+        return;
+    }
+
+    const startIndex = historyPage * historyItemsPerPage;
+    const endIndex = Math.min(startIndex + historyItemsPerPage, uploadHistory.length);
+    const currentItems = uploadHistory.slice(startIndex, endIndex);
+
+    // If first page, replace content, otherwise append
+    if (historyPage === 0) {
+        historyBody.innerHTML = '';
+    }
+
+    const itemsHtml = currentItems.map(item => `
+        <div class="history-item">
+            <div class="history-preview-container">
+                <img src="${item.thumbUrl}" alt="Előnézet" class="history-preview" 
+                     onmouseenter="showPreviewOverlay('${item.url}')" 
+                     onmouseleave="hidePreviewOverlay()">
+            </div>
+            <div class="history-info">
+                <div class="history-name">${item.fileName}</div>
+                <div class="history-date">${new Date(item.uploadDate).toLocaleString('hu-HU')}</div>
+            </div>
+            <button class="btn btn-secondary btn-small" onclick="copyHistoryCode('${item.url}', '${item.fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, '-')}', this)">
+                Kód másolása
+            </button>
+            <button class="btn btn-destructive btn-small" onclick="removeFromHistory(${item.id})">
+                Törlés
+            </button>
+        </div>
+    `).join('');
+
+    // Append items
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = itemsHtml;
+    while (tempDiv.firstChild) {
+        historyBody.appendChild(tempDiv.firstChild);
+    }
+
+    // Add load more button if there are more items
+    const loadMoreContainer = document.getElementById('loadMoreContainer') || document.createElement('div');
+    loadMoreContainer.id = 'loadMoreContainer';
+    loadMoreContainer.style.textAlign = 'center';
+    loadMoreContainer.style.marginTop = '20px';
+    
+    if (endIndex < uploadHistory.length) {
+        loadMoreContainer.innerHTML = `
+            <button class="btn btn-secondary" onclick="loadMoreHistory()">
+                További elemek betöltése
+            </button>
+        `;
+    } else {
+        loadMoreContainer.innerHTML = '';
+    }
+    
+    if (!document.getElementById('loadMoreContainer')) {
+        historyBody.appendChild(loadMoreContainer);
+    }
+
+    // Add clear all button at the bottom
+    if (historyPage === 0) {
+        historyBody.innerHTML += `
             <button class="btn btn-destructive clear-history-btn" onclick="clearHistory()">
                 🗑️ Összes előzmény törlése
             </button>
@@ -990,6 +1154,7 @@
             <img id="historyPreviewOverlay" class="history-preview-overlay" alt="Nagyított előnézet">
         `;
     }
+}
 
     function showPreviewOverlay(imageUrl) {
         const overlay = document.getElementById('historyPreviewOverlay');
@@ -1096,5 +1261,14 @@
       }
     });
 </script>
+<div id="historyModal" class="simple-modal-bg">
+    <div class="simple-modal-content">
+        <button id="historyClose" class="simple-modal-close" title="Bezárás">&times;</button>
+        <h2>Feltöltési előzmények</h2>
+        <div id="historyBody" class="history-items-container">
+            <!-- History items will be loaded here -->
+        </div>
+    </div>
+</div>
 </body>
 </html>
